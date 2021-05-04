@@ -1,6 +1,10 @@
 package generator
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/ikawaha/kagome/v2/filter"
+)
 
 func TestKatakanaKatsuyou1(t *testing.T) {
 	expected := "なんちゃッテ"
@@ -40,7 +44,7 @@ func TestKatakanaKatsuyou4(t *testing.T) {
 
 func TestInsertPunctuations0(t *testing.T) {
 	expected := "どうしちゃったのかな"
-	actual := insertPunctuations("どうしちゃったのかな", PunctuationConfig{[]string{"助動詞", "名詞"}, 0})
+	actual := insertPunctuations("どうしちゃったのかな", PunctuationConfig{TargetHinshis: filter.NewPOSFilter(filter.POS{"助動詞"}, filter.POS{"名詞"})})
 	t.Log(actual)
 	if actual != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", actual, expected)
@@ -49,7 +53,7 @@ func TestInsertPunctuations0(t *testing.T) {
 
 func TestInsertPunctuations2(t *testing.T) {
 	expected := "どうしちゃった、のかな"
-	actual := insertPunctuations("どうしちゃったのかな", PunctuationConfig{[]string{"助動詞"}, 100})
+	actual := insertPunctuations("どうしちゃったのかな", PunctuationConfig{TargetHinshis: filter.NewPOSFilter(filter.POS{"助動詞"}), Rate: 100})
 	t.Log(actual)
 	if actual != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", actual, expected)
@@ -57,7 +61,7 @@ func TestInsertPunctuations2(t *testing.T) {
 }
 func TestInsertPunctuations3(t *testing.T) {
 	expected := "どうしちゃった、のか、な、"
-	actual := insertPunctuations("どうしちゃったのかな", PunctuationConfig{[]string{"助動詞", "助詞"}, 100})
+	actual := insertPunctuations("どうしちゃったのかな", PunctuationConfig{TargetHinshis: filter.NewPOSFilter(filter.POS{"助動詞"}, filter.POS{"助詞"}), Rate: 100})
 	t.Log(actual)
 	if actual != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", actual, expected)
@@ -65,7 +69,7 @@ func TestInsertPunctuations3(t *testing.T) {
 }
 
 func BenchmarkPunctuation(b *testing.B) {
-	for i:=0; i < b.N; i++ {
-		insertPunctuations("どうしちゃったのかな", PunctuationConfig{[]string{"助動詞", "助詞"}, 100})
+	for i := 0; i < b.N; i++ {
+		insertPunctuations("どうしちゃったのかな", PunctuationConfig{TargetHinshis: filter.NewPOSFilter(filter.POS{"助動詞"}, filter.POS{"助詞"}), Rate: 100})
 	}
 }

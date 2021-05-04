@@ -8,31 +8,33 @@ import (
 	"time"
 
 	"github.com/greymd/ojichat/pattern"
-	"github.com/ikawaha/kagome.ipadic/tokenizer"
+	"github.com/ikawaha/kagome-dict/ipa"
+	"github.com/ikawaha/kagome/v2/filter"
+	"github.com/ikawaha/kagome/v2/tokenizer"
 	"github.com/miiton/kanaconv"
 )
 
 // PunctuationConfig ... 句読点挿入の設定
 type PunctuationConfig struct {
-	TargetHinshis []string // 句読点を後方に挿入する形態素の品詞
-	Rate          int      // 句読点を挿入する確率(百分率)
+	TargetHinshis *filter.POSFilter // 句読点を後方に挿入する形態素の品詞
+	Rate          int               // 句読点を挿入する確率(百分率)
 }
 
 var pconfigs = []PunctuationConfig{
 	{
-		TargetHinshis: []string{},
+		TargetHinshis: filter.NewPOSFilter(),
 		Rate:          0,
 	},
 	{
-		TargetHinshis: []string{"助動詞"},
+		TargetHinshis: filter.NewPOSFilter(filter.POS{"助動詞"}),
 		Rate:          30,
 	},
 	{
-		TargetHinshis: []string{"助動詞", "助詞"},
+		TargetHinshis: filter.NewPOSFilter(filter.POS{"助動詞"}, filter.POS{"助詞"}),
 		Rate:          60,
 	},
 	{
-		TargetHinshis: []string{"助動詞", "助詞"},
+		TargetHinshis: filter.NewPOSFilter(filter.POS{"助動詞"}, filter.POS{"助詞"}),
 		Rate:          100,
 	},
 }
@@ -124,19 +126,12 @@ func insertPunctuations(message string, config PunctuationConfig) string {
 	rand.Seed(time.Now().UnixNano())
 	result := ""
 	// おじさんの文句の形態素解析に使われるなんて可哀そうなライブラリだな
-	t := tokenizer.NewWithDic(tokenizer.SysDicIPASimple())
+	t, _ := tokenizer.New(ipa.DictShrink(), tokenizer.OmitBosEos())
 	tokens := t.Tokenize(message)
 	for _, token := range tokens {
-		if token.Class == tokenizer.DUMMY {
-			continue
-		}
-		features := token.Features()
-		hinshiFlag := false
-		for _, hinshi := range config.TargetHinshis {
-			if hinshi == features[0] {
-				hinshiFlag = true
-				break
-			}
+		var hinshiFlag bool
+		if config.TargetHinshis.Match(token.POS()) {
+			hinshiFlag = true
 		}
 		if hinshiFlag && rand.Intn(100) <= config.Rate {
 			result += token.Surface + "、"
